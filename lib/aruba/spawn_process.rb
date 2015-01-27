@@ -19,7 +19,8 @@ module Aruba
     end
 
     def run!(&block)
-      @process = ChildProcess.build(*shellwords(@cmd))
+      words = shellwords(@cmd)
+      @process = ChildProcess.build(*words)
       @out = Tempfile.new("aruba-out")
       @err = Tempfile.new("aruba-err")
       @process.io.stdout = @out
@@ -29,7 +30,16 @@ module Aruba
       begin
         @process.start
       rescue ChildProcess::LaunchError => e
-        raise LaunchError.new(e.message)
+	words[0] = words[0] + '.bat'
+	@process = ChildProcess.build(*words)
+	@process.io.stdout = @out
+        @process.io.stderr = @err
+        @process.duplex = true
+	begin
+	  @process.start			
+	rescue ChildProcess::LaunchError => e
+	  raise LaunchError.new(e.message)
+	end
       end
       yield self if block_given?
     end
